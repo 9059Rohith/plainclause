@@ -27,6 +27,10 @@ The test suite covers upload validation, document parsing, OCR, clause analysis,
 - [Earlier evaluation snapshot](evaluation-2026-09-16.md): task specific evaluation and remaining limits.
 - [Deployment design](superpowers/specs/2026-09-15-protected-preview-deployment-design.md) and [implementation record](superpowers/plans/2026-09-15-protected-preview-deployment.md): preview architecture and prior rollout checks.
 
+## Live preview check
+
+On 2026-09-25, the [HTTPS preview](https://bee-nonintersecting-overwarily.ngrok-free.dev/) returned HTTP 200 for the app and status endpoint, with the local `qwen2.5:1.5b` model available. A synthetic agreement was uploaded through the public URL, its `$275 each month` clause was extracted, and the question “What is the monthly payment?” returned an `answered` result with one citation. The test document was deleted; the isolated preview database then contained zero documents. The backend and tunnel scheduled tasks were running after the check.
+
 ## Release limitations
 
 The HTTPS evaluation preview is an ngrok tunnel to the local Windows service. It is available only while this computer, Ollama, backend, and tunnel are running. The free ngrok domain may display a first visit warning. Upload traffic reaches the tunnel provider before local processing. The preview has no account authentication; each browser receives a session scoped workspace. Do not use it for confidential documents or as a production legal service.
