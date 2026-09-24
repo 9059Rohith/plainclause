@@ -1,0 +1,11 @@
+export type Citation = { id: string; heading: string; page: number; quote: string }
+export type Answer = { status: 'answered' | 'source_only' | 'not_found'; answer: string; citations: Citation[]; disclaimer: string; professional_note?: string; jurisdiction_note?: string; section_id?: string }
+export type HistoryItem = { id: string; question: string; answer: Answer; created_at: string }
+export type IndexProgress = { processed: number; total: number; indexed: number; model?: string }
+export type SummaryAnswer = Answer & { start_offset: number; coverage_count: number; total_sections: number; uncited_headings: string[]; level: 'simple' | 'detailed' }
+export type DocSummary = { id: string; name: string; file_type: string; created_at: string; section_count: number }
+export type Chunk = { id: string; ordinal: number; heading: string; text: string; page: number; categories: string[]; review_reasons: string[]; deadlines: string[] }
+export type Document = Omit<DocSummary, 'section_count'> & { chunks: Chunk[] }
+export type CompareRow = { heading: string; status: 'added' | 'removed' | 'modified'; before: string | null; after: string | null; similarity: number | null; changed_terms: { label: string; before: string; after: string }[] }
+export type Comparison = { base: string; comparisons: { name: string; rows: CompareRow[] }[]; disclaimer: string }
+export type Prep = { document: string; facts: { source: string; page: number; excerpt: string; chunk_id: string }[]; questions: { question: string; source: string; chunk_id: string }[]; deadlines: { text: string; source: string; chunk_id: string }[]; resources: string[]; checklist: string[]; disclaimer: string; user_goals?: string }
