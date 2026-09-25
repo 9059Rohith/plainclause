@@ -282,6 +282,7 @@ docs/                Submission, evaluation, deployment, and review reports
 | `OPENAI_API_KEY` | Unset | Cloud-answer credential; keep out of Git. |
 | `PLAINCLAUSE_OPENAI_MODEL` / `PLAINCLAUSE_OPENAI_BASE_URL` | `gpt-4o-mini` / OpenAI API | Optional model and compatible endpoint. |
 | `PLAINCLAUSE_ACCESS_PASSWORD` | Unset | Optional Basic-auth gate; username `plainclause`. |
+| `PLAINCLAUSE_ALLOWED_ORIGINS` | Unset | Comma-separated exact HTTPS origins allowed to make browser mutations through a reverse proxy; the Vercel aliases are configured on the local preview backend. |
 | `PLAINCLAUSE_HOSTED_PREVIEW` / `PLAINCLAUSE_HOSTED_SERVICE` | Unset | Hosted privacy notices and secure-cookie behavior. |
 
 Document operations use a random HttpOnly session cookie. Mutations require `X-Requested-With: Plainclause`; the browser client adds it. The backend disables generated OpenAPI pages. A simple health probe is `curl http://127.0.0.1:8000/api/status`.

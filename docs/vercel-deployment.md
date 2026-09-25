@@ -27,7 +27,9 @@ A headless Chromium workflow also opened the Vercel URL, uploaded a synthetic TX
 
 The initial Vercel deployment uploaded the locally built static assets and an equivalent rewrite configuration through the connected Vercel deployment API. This deployment is not Git-linked; pushing GitHub commits alone does not publish later frontend changes. `vercel.json` records the source configuration for a future Git-connected deployment.
 
-The backend, Ollama model, and SQLite database remain on the local Windows computer. If that computer, the backend task, Ollama, or the ngrok tunnel stops, the Vercel frontend may still render but document actions will fail. The tunnel URL can change. A durable cloud backend requires hosting the container and persistent `/data` volume; the [Railway report](railway-deployment.md) records the current account restriction. Do not call this an all-cloud or permanent deployment.
+The backend, Ollama model, and SQLite database remain on the local Windows computer. If that computer, the backend process, Ollama, or the ngrok tunnel stops, the Vercel frontend may still render but document actions will fail. The tunnel URL can change. A durable cloud backend requires hosting the container and persistent `/data` volume; the [Railway report](railway-deployment.md) records the current account restriction. Do not call this an all-cloud or permanent deployment.
+
+At the final check, the backend and tunnel were running in active command sessions after Windows scheduled task restarts stalled. The public URL answered a warmed synthetic question with one citation and deleted the test document. These command sessions and the computer must remain running for the evaluation API to work.
 
 ## Recheck after a restart
 
