@@ -1,4 +1,8 @@
+![Plainclause — Understand the fine print](docs/assets/plainclause-hero.png)
+
 # Plainclause
+
+**Understand the fine print.** [Explore the code](https://github.com/9059Rohith/plainclause) · [Submission report](docs/submission-report-2026-09-25.md) · [Engineering review](docs/quality-gate.md) · [Railway deployment status](docs/railway-deployment.md)
 
 Plainclause is an AI-powered legal document assistant that simplifies, compares, analyzes, and explains legal information while helping users identify key clauses, risks, and next steps. It extracts PDF, DOCX, and UTF-8 TXT files; preserves clause headings and PDF page references; highlights terms worth reviewing; answers questions using passages from the selected document; compares clause wording across documents; and prepares a checklist and questions for a lawyer. It provides **legal information, not legal advice**.
 
@@ -13,15 +17,31 @@ Plainclause is an AI-powered legal document assistant that simplifies, compares,
 - **Privacy-First Architecture** — Local processing by default with an explicit cloud provider opt-in; session-scoped SQLite storage with secure-delete
 - **Hallucination Guardrails** — Citation-ID checks, numeric-claim verification, directive filtering, and source-only fallback
 
+## At a glance
+
+Plainclause is designed for readers who need to understand practical obligations before discussing a document with a lawyer. The interface has **Overview**, **Ask**, **Compare**, and **Prepare** views. The original passage remains visible beside interpretations, and the app identifies sections a generated overview has not cited. Review signals are prompts to inspect wording, not legal verdicts.
+
+| Layer | Implementation | Role |
+| --- | --- | --- |
+| Interface | React 19, TypeScript 5.7, Vite 6 | Document workspace, explanations, comparison, and exports |
+| API | FastAPI, Pydantic | Upload validation, session boundaries, workflow endpoints |
+| Parsing | pypdf, PyMuPDF, python-docx, RapidOCR | Structured text and scanned-page OCR |
+| Retrieval | scikit-learn, Ollama `all-minilm` | Persisted embeddings plus term matching |
+| Answers | Ollama `qwen2.5:1.5b` | Local drafts checked against cited passages |
+| Storage | SQLite | Session-scoped sections, vectors, history, and summaries |
+| Delivery | Docker, Railway configuration | Single-service hosted evaluation path |
+
 ## Run locally
 
 Requirements: Python 3.12 on Windows for the verified lockfile, Node.js 20+, and [Ollama](https://ollama.com/) for AI explanations. No account, API key, credit card, or paid service is required.
 
 ```powershell
+git clone https://github.com/9059Rohith/plainclause.git
+cd plainclause
 python -m venv .venv
 .venv\Scripts\Activate.ps1
 python -m pip install -r backend/requirements.lock.txt
-npm install
+npm ci
 ollama pull qwen2.5:1.5b
 ollama pull all-minilm
 npm run build
@@ -42,7 +62,7 @@ An optional `PLAINCLAUSE_ACCESS_PASSWORD` environment variable enables a Basic-a
 
 The repository includes a Docker image and Railway configuration for a single service containing the frontend, FastAPI, and local Ollama models. The image sets `PLAINCLAUSE_HOSTED_SERVICE=1`; the app then describes hosted processing and storage accurately. The database path is `/data/plainclause.db`, so a persistent Railway volume must be mounted at `/data` before use. Railway checks `/api/ready` and only routes traffic when the model is available. See [Railway deployment steps and current status](docs/railway-deployment.md).
 
-This deployment is **prepared but not live** as of 2026-09-25. Railway rejected project creation with `Free plan resource provision limit exceeded`; the workspace must be upgraded and a volume provisioned before the image can be built and verified remotely. The Docker image has not been built locally because the Docker Desktop engine is unavailable in this environment. Do not use the temporary tunnel as proof of a durable deployment.
+This deployment is **not live** as of 2026-09-25. The new Railway account has a `plainclause` project, a `/data` volume, and a reserved domain. Railway rejected both code uploads with `Your workspace has been restricted. Please attach a payment method or contact support to resolve this.` The repository cannot be connected directly because that Railway account does not have access to the GitHub repository. No container image has been built or verified remotely; the Docker Desktop engine is unavailable locally. The reserved Railway domain is not evidence of a working app. See the [deployment runbook](docs/railway-deployment.md) for the exact status.
 
 ## How it works
 
@@ -68,7 +88,7 @@ Generated interpretations carry a visible disclaimer and source excerpts. The ap
 
 ## Tests and checks
 
-See the [current submission report](docs/submission-report-2026-09-25.md), [engineering and design review](docs/quality-gate.md), and [evaluation snapshot](docs/evaluation-2026-09-16.md) for verification evidence and known limits.
+See the [current submission report](docs/submission-report-2026-09-25.md), [README quality audit](docs/readme-quality-audit.md), [engineering and design review](docs/quality-gate.md), and [evaluation snapshot](docs/evaluation-2026-09-16.md) for verification evidence and known limits.
 On the documented Windows setup, `scripts/verify.ps1` runs the core checks in sequence.
 
 ```powershell
@@ -98,7 +118,87 @@ Comparison and preparation UI modules load on demand. Long section lists use bro
 
 ## Architecture
 
-`src/` contains the React/Vite interface and export helpers. `backend/app/ingest.py` parses, OCRs, and chunks documents, `analysis.py` produces review signals and comparison rows, `rag.py` retrieves and checks answer grounding, `model.py` talks to local Ollama, `storage.py` owns SQLite, and `main.py` exposes validated API routes. The default local setup runs on the user's computer without billing activation; the optional Railway image runs those same components on paid cloud infrastructure.
+```mermaid
+flowchart LR
+    Browser[React and TypeScript UI] --> API[FastAPI API]
+    API --> Ingest[Validation, parsing, OCR]
+    API --> Analysis[Review signals and comparison]
+    API --> Retrieval[Retrieval and answer checks]
+    Ingest --> DB[(Session-scoped SQLite)]
+    Analysis --> DB
+    Retrieval <--> DB
+    Retrieval --> Ollama[Local Ollama answer and embedding models]
+    Retrieval -. Explicit opt-in .-> Cloud[OpenAI-compatible answer endpoint]
+```
+
+The user flow is: upload a PDF, DOCX, or TXT file; inspect extracted sections and source pages; optionally index embeddings; request a source-linked explanation or ask a question; compare documents or export a lawyer preparation sheet; delete the workspace data when finished.
+
+```mermaid
+flowchart LR
+    File[Uploaded document] --> Validation[Type, size, and content checks]
+    Validation --> Sections[Sections and page references]
+    Sections --> Store[(SQLite)]
+    Sections --> Embeddings[Local embedding batches]
+    Embeddings --> Store
+    Question[Question] --> Search[Dense and lexical retrieval]
+    Store --> Search
+    Search --> Draft[Model draft]
+    Draft --> Checks[Citation, numeric, and directive checks]
+    Checks --> Result[Verified answer or source-only response]
+```
+
+`src/` contains the React/Vite interface and export helpers. `backend/app/ingest.py` parses, OCRs, and chunks documents, `analysis.py` produces review signals and comparison rows, `rag.py` retrieves and checks answer grounding, `model.py` talks to local Ollama, `storage.py` owns SQLite, and `main.py` exposes validated API routes. The default local setup runs on the user's computer without billing activation; the Railway image is designed to run those components on hosted infrastructure.
+
+```text
+src/                 React views, API client, exports, and styling
+backend/app/         FastAPI, ingestion, analysis, retrieval, models, SQLite
+backend/tests/       Backend and API tests
+tests/e2e/           Playwright browser workflows
+deployment/start.sh  Container startup for Ollama and FastAPI
+Dockerfile           Multi-stage frontend and backend image
+railway.json         Railway build and readiness configuration
+scripts/verify.ps1   Local verification sequence
+docs/                Submission, evaluation, deployment, and review reports
+```
+
+## Configuration and API
+
+| Variable | Default | Purpose |
+| --- | --- | --- |
+| `PLAINCLAUSE_DB_PATH` | `backend/data/plainclause.db` | SQLite path; use persistent storage when hosted. |
+| `PLAINCLAUSE_MODEL` / `PLAINCLAUSE_EMBED_MODEL` | `qwen2.5:1.5b` / `all-minilm` | Local answer and embedding models. |
+| `PLAINCLAUSE_OLLAMA_URL` | `http://127.0.0.1:11434` | Numeric-loopback Ollama endpoint. |
+| `PLAINCLAUSE_PROVIDER` | `ollama` | Set to `openai` to opt into cloud answers. |
+| `OPENAI_API_KEY` | Unset | Cloud-answer credential; keep out of Git. |
+| `PLAINCLAUSE_OPENAI_MODEL` / `PLAINCLAUSE_OPENAI_BASE_URL` | `gpt-4o-mini` / OpenAI API | Optional model and compatible endpoint. |
+| `PLAINCLAUSE_ACCESS_PASSWORD` | Unset | Optional Basic-auth gate; username `plainclause`. |
+| `PLAINCLAUSE_HOSTED_PREVIEW` / `PLAINCLAUSE_HOSTED_SERVICE` | Unset | Hosted privacy notices and secure-cookie behavior. |
+
+Document operations use a random HttpOnly session cookie. Mutations require `X-Requested-With: Plainclause`; the browser client adds it. The backend disables generated OpenAPI pages. A simple health probe is `curl http://127.0.0.1:8000/api/status`.
+
+| Method | Route | Purpose |
+| --- | --- | --- |
+| `GET` | `/api/status`, `/api/ready` | Provider status and model readiness |
+| `GET`, `POST` | `/api/documents` | List or upload documents |
+| `GET`, `DELETE` | `/api/documents/{id}` | Read or delete a document |
+| `GET`, `POST` | `/api/documents/{id}/index` | Check or build its semantic index |
+| `POST` | `/api/ask`, `/api/ask/stream` | Cited Q&A; the stream is newline-delimited JSON |
+| `POST`, `GET`, `DELETE` | `/api/documents/{id}/summary`, `/api/documents/{id}/summaries` | Generate, read, or clear overview batches |
+| `POST` | `/api/documents/{id}/simplify`, `/api/compare` | Explain a section or compare documents |
+| `GET` | `/api/documents/{id}/prepare`, `/api/documents/{id}/history` | Preparation data and Q&A history |
+| `DELETE` | `/api/data` | Delete the current session's stored data |
+
+Uploads use multipart form field `file`. Q&A uses JSON such as `{"document_id":"...","question":"..."}`. See [API implementation](backend/app/main.py) and [browser client](src/api.ts) for request and response details.
+
+## Next steps and contributing
+
+- [x] Structured extraction, OCR, grounded Q&A, overview, comparison, and preparation workflows.
+- [x] Local test suite and temporary public smoke test with synthetic content.
+- [ ] Resolve the Railway workspace restriction, build the image, and pass cloud smoke tests.
+- [ ] Add account authorization and wider abuse controls before public multi-user use.
+- [ ] Seek attorney, accessibility, security, and load reviews before professional use.
+
+Contributions are welcome through GitHub issues and pull requests. Fork the repository, create a focused branch, run `scripts/verify.ps1` on the documented setup, and describe behavior, evidence, and limitations in the PR. Preserve source visibility and the legal-information framing when changing model output. No formal latency or scale benchmark is included.
 
 ## License
 
