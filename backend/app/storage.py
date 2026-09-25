@@ -2,6 +2,7 @@
 from __future__ import annotations
 from pathlib import Path
 from array import array
+from contextlib import contextmanager
 import json
 import sqlite3
 import time
@@ -57,12 +58,17 @@ class Store:
                 );
             """)
 
+    @contextmanager
     def connect(self):
         db = sqlite3.connect(self.path, timeout=15)
         db.row_factory = sqlite3.Row
-        db.execute("PRAGMA foreign_keys = ON")
-        db.execute("PRAGMA secure_delete = ON")
-        return db
+        try:
+            db.execute("PRAGMA foreign_keys = ON")
+            db.execute("PRAGMA secure_delete = ON")
+            with db:
+                yield db
+        finally:
+            db.close()
 
     def add(self, session: str, name: str, kind: str, sections: list[Section]) -> str:
         document_id = str(uuid4())

@@ -2,9 +2,17 @@
 
 # Plainclause
 
-**Understand the fine print.** [Explore the code](https://github.com/9059Rohith/plainclause) · [Submission report](docs/submission-report-2026-09-25.md) · [Engineering review](docs/quality-gate.md) · [Railway deployment status](docs/railway-deployment.md)
+**Understand the fine print.** [Temporary live preview](https://bee-nonintersecting-overwarily.ngrok-free.dev/) · [Explore the code](https://github.com/9059Rohith/plainclause) · [Submission report](docs/submission-report-2026-09-25.md) · [Engineering review](docs/quality-gate.md) · [Railway deployment status](docs/railway-deployment.md)
 
 Plainclause is an AI-powered legal document assistant that simplifies, compares, analyzes, and explains legal information while helping users identify key clauses, risks, and next steps. It extracts PDF, DOCX, and UTF-8 TXT files; preserves clause headings and PDF page references; highlights terms worth reviewing; answers questions using passages from the selected document; compares clause wording across documents; and prepares a checklist and questions for a lawyer. It provides **legal information, not legal advice**.
+
+**Read this first:** [Feature evidence](docs/feature-evidence.md) · [Security review](docs/security-review.md) · [Code quality](docs/code-quality-report.md) · [Test report](docs/test-report-2026-09-25.md) · [Latency measurements](docs/latency-report-2026-09-25.md) · [Accessibility review](docs/accessibility-review.md) · [Submission readiness](docs/submission-readiness.md).
+
+**Jump to:** [Features](#features) · [Run locally](#run-locally) · [Architecture](#architecture) · [Configuration and API](#configuration-and-api) · [Tests](#tests-and-checks) · [Security](#privacy-and-security) · [Limits](#limits-and-troubleshooting).
+
+### Submission status
+
+The repository is ready for a **local technical review**: the documented Windows environment passes its automated backend, browser, type, lint, build, and dependency checks. It is **not yet 100% ready for a submission that requires a durable cloud deployment**. Railway created the project, volume, and domain, then blocked source upload at the account level. The temporary HTTPS preview is working at the last check but depends on this computer and tunnel. The [readiness matrix](docs/submission-readiness.md) separates passed parameters from the cloud and independent-review gates; no unverified parameter is marked passed.
 
 ## Features
 
@@ -31,6 +39,31 @@ Plainclause is designed for readers who need to understand practical obligations
 | Storage | SQLite | Session-scoped sections, vectors, history, and summaries |
 | Delivery | Docker, Railway configuration | Single-service hosted evaluation path |
 
+### Feature verification matrix
+
+| Capability | User-visible result | Evidence | Status |
+| --- | --- | --- | --- |
+| Upload and validation | Extracted sections from PDF, DOCX, or TXT; clear error for invalid content | Parser and API tests | Passed locally |
+| Scanned PDF OCR | Locally transcribed pages labeled for verification | Image-only PDF test | Passed locally, scan quality varies |
+| Section and page references | Headings, full clause text, and PDF page numbers visible | Parser boundary tests | Passed locally |
+| Explanations and overview | Simple/detailed section text; saved, resumable overview batches | Summary API and browser tests | Passed locally |
+| Hybrid document Q&A | Cited answer or source-only fallback; saved history | Retrieval, grounding, streaming, browser tests | Passed locally |
+| Review and deadlines | Source-linked signals and date/period expressions | Analysis tests | Passed locally, heuristic |
+| Comparison | Added/removed/modified clauses and amount/period changes across 2–5 documents | Comparison and browser tests | Passed locally |
+| Preparation and export | Questions, checklist, goals, Markdown, and browser PDF/print | Browser workflow tests Markdown; print control inspected in source | Passed locally for preparation and Markdown; PDF output unverified |
+| Session privacy and deletion | Cookie-scoped documents and cascading deletion | API isolation/deletion tests | Passed locally |
+| Durable Railway hosting | Public service with `/data` persistence and model readiness | Remote build and smoke test required | **Blocked by Railway account restriction** |
+
+The detailed [implementation-to-test map](docs/feature-evidence.md) records code locations and boundaries for each row.
+
+### Product screenshots
+
+These are browser captures from automated workflows. The desktop view uses a synthetic lease; the mobile view is the real empty workspace. No customer document is shown.
+
+| Desktop document workspace | Mobile starting view |
+| --- | --- |
+| ![Plainclause desktop workspace with source sections and review rail](docs/assets/plainclause-desktop.png) | ![Plainclause mobile upload screen](docs/assets/plainclause-mobile.png) |
+
 ## Run locally
 
 Requirements: Python 3.12 on Windows for the verified lockfile, Node.js 20+, and [Ollama](https://ollama.com/) for AI explanations. No account, API key, credit card, or paid service is required.
@@ -56,6 +89,8 @@ Ollama is the default answer provider. To opt into cloud answers, set `PLAINCLAU
 
 ## Temporary online preview
 
+**Preview URL:** <https://bee-nonintersecting-overwarily.ngrok-free.dev/>. It returned HTTP 200 with the local model available at the last recorded check; availability can change at any time.
+
 An optional `PLAINCLAUSE_ACCESS_PASSWORD` environment variable enables a Basic-auth password gate across the UI and API (username `plainclause`). The evaluation preview leaves this variable unset so evaluators can open the link directly; anyone who obtains the URL can therefore access the service. Set `PLAINCLAUSE_HOSTED_PREVIEW=1` to show the in-app tunnel/privacy notice and use Secure session cookies. The current preview runs the same backend and local Ollama model on this computer through an ngrok HTTPS tunnel; its URL changes or expires, and it only works while the computer, backend, and tunnel stay running. This is a test preview, not durable cloud hosting. Uploaded document traffic passes through ngrok before reaching this computer. Preview data uses an isolated SQLite database under `.runtime/`; `.runtime/` is ignored by Git. Delete your workspace data after testing. Do not treat a free tunnel as a production deployment or upload documents you cannot share with its tunnel provider. Ngrok may show first-time visitors a one-time safety page before the application.
 
 ## Railway deployment
@@ -63,6 +98,18 @@ An optional `PLAINCLAUSE_ACCESS_PASSWORD` environment variable enables a Basic-a
 The repository includes a Docker image and Railway configuration for a single service containing the frontend, FastAPI, and local Ollama models. The image sets `PLAINCLAUSE_HOSTED_SERVICE=1`; the app then describes hosted processing and storage accurately. The database path is `/data/plainclause.db`, so a persistent Railway volume must be mounted at `/data` before use. Railway checks `/api/ready` and only routes traffic when the model is available. See [Railway deployment steps and current status](docs/railway-deployment.md).
 
 This deployment is **not live** as of 2026-09-25. The new Railway account has a `plainclause` project, a `/data` volume, and a reserved domain. Railway rejected both code uploads with `Your workspace has been restricted. Please attach a payment method or contact support to resolve this.` The repository cannot be connected directly because that Railway account does not have access to the GitHub repository. No container image has been built or verified remotely; the Docker Desktop engine is unavailable locally. The reserved Railway domain is not evidence of a working app. See the [deployment runbook](docs/railway-deployment.md) for the exact status.
+
+### Docker deployment recipe
+
+For a machine with a working Docker engine, the repository's single image can be built and run with persistent SQLite storage:
+
+```sh
+docker build -t plainclause .
+docker volume create plainclause-data
+docker run --rm --name plainclause -p 8000:8000 -v plainclause-data:/data plainclause
+```
+
+The image serves the built UI and API on port 8000 when `PORT` is unset, starts its bundled Ollama models locally, and keeps the database on the named volume. Check `http://127.0.0.1:8000/api/ready` before uploading anything. This exact container recipe is documented from the Dockerfile and entrypoint but has **not been executed on this machine** because Docker Desktop is unavailable. The first image build downloads Ollama and both models and may be slow and large. Railway uses the same Dockerfile, `railway.json`, and a `/data` volume.
 
 ## How it works
 
@@ -81,6 +128,17 @@ Verified answers to exact repeated questions are reused from document-scoped his
 ## Privacy and security
 
 The server binds to `127.0.0.1` in the documented local command; the Railway container binds to its assigned service port. A random 256-bit, HttpOnly, SameSite cookie scopes every document operation. The browser sends a custom request header on mutations, and the backend blocks cross-origin/cross-site requests. Session-scoped request caps bound uploads, indexing, and model calls. Document content is not logged; audit events contain only operation names, source IDs, and result status. With the default local setup, document content stays on the user's computer. A hosted evaluation deploy stores extracted content on the cloud provider's volume, and the temporary preview routes uploads through its tunnel provider. The Ollama model URL is restricted to numeric loopback addresses. The app applies a 10 MB upload limit, a 200-page PDF limit, a 50-page OCR limit, text and DOCX expansion limits, extension/MIME/content checks, active-PDF-content rejection, safe errors, and restrictive response headers. Delete my data removes all current-workspace rows, including sections, embeddings, summaries, Q&A history, audit events, and rate-limit counters, and clears saved prep goals in the current browser tab. SQLite secure-delete is enabled to overwrite deleted rows; disk snapshots and backups may retain older copies. If you clear the browser cookie without deleting, the old workspace becomes inaccessible; for sensitive use, delete data before clearing cookies. This is a single-user tool with session isolation, not a multi-user hosted authentication system.
+
+| Control | Present behavior | Practical limit |
+| --- | --- | --- |
+| Session isolation | Random cookie and session-scoped database queries | No account recovery or public-user identity |
+| Browser request checks | Custom mutation header, origin checks, restrictive response headers | Does not replace network-wide abuse controls |
+| Upload validation | Type/signature checks, active-content rejection, expansion and page limits | Malformed or unusual files still need inspection |
+| Model grounding | Citation-ID and numeric checks, directive filter, source-only fallback | Does not prove every interpretation correct |
+| Data deletion | Cascading SQLite deletion and `secure_delete` | Backups, snapshots, and external providers may retain copies |
+| Optional preview password | Basic auth when configured | Not enabled on the public evaluation tunnel |
+
+The [security review](docs/security-review.md) maps each control to tests and lists residual risks. Dependency advisory results are in the [code quality report](docs/code-quality-report.md).
 
 ## Legal-information policy
 
@@ -102,6 +160,22 @@ python -m pip_audit -r backend/requirements.lock.txt --no-deps --disable-pip
 ```
 
 `pip_audit` requires the separate free `pip-audit` package; if it is not installed, run `python -m pip install pip-audit`. Browser tests start a temporary backend on port 8766 and require Google Chrome because the Playwright config uses its installed `chrome` channel. Tests cover parsing boundaries, OCR, a 200-page PDF, lease/NDA/ToS retrieval, classification and deadlines, prompt-injection filtering, grounded retrieval, comparison, session isolation, persisted index/history/summary deletion, streamed answer validation, and invalid uploads.
+
+### Current verification results
+
+| Check | Result on the documented Windows setup |
+| --- | --- |
+| Backend/API suite after SQLite resource fix | **36 passed**, 2 upstream test-client deprecation warnings |
+| Playwright Chrome | **4 passed**: desktop workflow, mobile overflow, preview notice, hosted-service notice |
+| TypeScript, ESLint, Vite build | Passed; production frontend bundle created |
+| JavaScript advisory scan | `npm audit --audit-level=high`: 0 vulnerabilities reported |
+| Python dependency consistency and advisory scan | `pip check`: no broken requirements; `pip-audit`: no known vulnerabilities in pinned environment |
+
+The full [test report](docs/test-report-2026-09-25.md) records the commands, coverage areas, and gaps. Automated tests confirm observed behavior on the tested configuration; no code-coverage percentage or Linux CI result is claimed.
+
+### Measured local latency
+
+The reproducible [latency probe](scripts/measure_latency.py) used an isolated SQLite database, two synthetic three-section TXT files, in-process FastAPI `TestClient`, and the already-running local Ollama model. On the tested Windows machine, the empty document list had **6.0 ms median** and **12.2 ms p95** across 30 calls; two TXT uploads took **35.2** and **35.7 ms**; one uncached local-model answer took **7.2 s**. See the [full latency report](docs/latency-report-2026-09-25.md) for status, document read, preparation, comparison, sample counts, machine details, and limits. These measurements exclude browser and network time and are not a hosted service-level objective.
 
 ## Limits and troubleshooting
 
@@ -149,6 +223,33 @@ flowchart LR
 
 `src/` contains the React/Vite interface and export helpers. `backend/app/ingest.py` parses, OCRs, and chunks documents, `analysis.py` produces review signals and comparison rows, `rag.py` retrieves and checks answer grounding, `model.py` talks to local Ollama, `storage.py` owns SQLite, and `main.py` exposes validated API routes. The default local setup runs on the user's computer without billing activation; the Railway image is designed to run those components on hosted infrastructure.
 
+### Component responsibilities
+
+| Component | Responsibility | Main boundary |
+| --- | --- | --- |
+| `src/App.tsx` | Workspace state, upload, section reading, Q&A, navigation, deletion | Calls the typed browser API client; does not parse legal files itself |
+| `src/Compare.tsx`, `src/Prepare.tsx` | On-demand comparison and preparation views | Work from API data; export helpers live in `src/export.ts` |
+| `backend/app/main.py` | Input validation, session cookie, request caps, HTTP routes, static UI | Requires the client header on mutations and scopes document IDs to the session |
+| `backend/app/ingest.py` | Signature checks, parser bounds, headings, tables, PDF page labels, OCR | Rejects unreadable or active content rather than silently discarding it |
+| `backend/app/analysis.py` | Deterministic review signals, dates, section alignment, amount/period diffs | Emits review prompts, not legal judgments |
+| `backend/app/rag.py` | Lexical/dense retrieval and answer acceptance checks | Returns cited or source-only text when evidence/model output is insufficient |
+| `backend/app/model.py` | Ollama or opt-in OpenAI-compatible calls | Local Ollama URL is restricted to numeric loopback; cloud mode is explicit |
+| `backend/app/storage.py` | SQLite transactions, session-scoped reads, deletion, saved vectors/history | Connections close after every transaction |
+
+### Persistence model
+
+| Table | Stored data | Lifetime |
+| --- | --- | --- |
+| `documents` | Session ID, file name/type, timestamp | Until current session deletes the document/data |
+| `chunks` | Ordered section heading, text, PDF page | Cascades with its document |
+| `embeddings` | Model-keyed vector per section | Cascades with its section |
+| `messages` | Saved question and checked answer | Cascades with its document |
+| `summaries` | Overview batch offset and result | Cascades with its document |
+| `audit_events` | Operation name, source IDs, result status | Cascades with its document; no document text logged |
+| `request_limits` | Per-session operation counters by time bucket | Old buckets are pruned; current session can clear them |
+
+SQLite has foreign-key cascades and `secure_delete=ON`; physical backups and snapshots remain outside the app's deletion scope. The original PDF, DOCX, or TXT binary is not retained after extraction. The [feature evidence](docs/feature-evidence.md) maps these structures to tests.
+
 ```text
 src/                 React views, API client, exports, and styling
 backend/app/         FastAPI, ingestion, analysis, retrieval, models, SQLite
@@ -190,6 +291,46 @@ Document operations use a random HttpOnly session cookie. Mutations require `X-R
 
 Uploads use multipart form field `file`. Q&A uses JSON such as `{"document_id":"...","question":"..."}`. See [API implementation](backend/app/main.py) and [browser client](src/api.ts) for request and response details.
 
+### Minimal API walkthrough
+
+Run this after starting the local backend. Replace `your-document.txt` with a supported file containing text you are allowed to process. The session object preserves the cookie, which is required to read the uploaded document again.
+
+```python
+from pathlib import Path
+import requests
+
+base = "http://127.0.0.1:8000"
+headers = {"X-Requested-With": "Plainclause"}
+with requests.Session() as session:
+    status = session.get(f"{base}/api/status", timeout=15)
+    status.raise_for_status()
+    print(status.json()["model_available"])
+
+    with Path("your-document.txt").open("rb") as file:
+        upload = session.post(
+            f"{base}/api/documents",
+            files={"file": ("your-document.txt", file, "text/plain")},
+            headers=headers,
+            timeout=30,
+        )
+    upload.raise_for_status()
+    document_id = upload.json()["id"]
+
+    answer = session.post(
+        f"{base}/api/ask",
+        json={"document_id": document_id, "question": "What notice period is stated?"},
+        headers=headers,
+        timeout=180,
+    )
+    answer.raise_for_status()
+    print(answer.json()["status"], answer.json()["citations"])
+
+    deleted = session.delete(f"{base}/api/data", headers=headers, timeout=30)
+    deleted.raise_for_status()
+```
+
+An answer can have `answered`, `source_only`, or `not_found` status. Check every cited passage in the original document. The streaming variant sends newline-delimited `status`, `progress`, and final `result` events; draft legal prose is withheld until its grounding checks complete. Upload, comparison, index, and generation calls have per-session rate limits, so batch clients should honor `429` responses.
+
 ## Next steps and contributing
 
 - [x] Structured extraction, OCR, grounded Q&A, overview, comparison, and preparation workflows.
@@ -198,8 +339,8 @@ Uploads use multipart form field `file`. Q&A uses JSON such as `{"document_id":"
 - [ ] Add account authorization and wider abuse controls before public multi-user use.
 - [ ] Seek attorney, accessibility, security, and load reviews before professional use.
 
-Contributions are welcome through GitHub issues and pull requests. Fork the repository, create a focused branch, run `scripts/verify.ps1` on the documented setup, and describe behavior, evidence, and limitations in the PR. Preserve source visibility and the legal-information framing when changing model output. No formal latency or scale benchmark is included.
+Contributions are welcome through GitHub issues and pull requests. Fork the repository, create a focused branch, run `scripts/verify.ps1` on the documented setup, and describe behavior, evidence, and limitations in the PR. Preserve source visibility and the legal-information framing when changing model output. The local latency probe is a small synthetic measurement; no hosted load or scale benchmark is included.
 
 ## License
 
-MIT
+[MIT](LICENSE) © 2026 Plainclause contributors.

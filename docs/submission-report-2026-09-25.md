@@ -10,7 +10,7 @@ The default AI provider is local Ollama. The OpenAI path requires an explicit `P
 
 | Check | Result |
 | --- | --- |
-| Backend pytest suite | 35 passed, 2 upstream test-client deprecation warnings |
+| Backend pytest suite after SQLite resource fix | 36 passed, 2 upstream test-client deprecation warnings |
 | Playwright Chrome workflows | 4 passed: full desktop workflow, mobile overflow, temporary preview notice, hosted-service notice |
 | TypeScript | Passed |
 | ESLint | Passed |
@@ -21,12 +21,16 @@ The default AI provider is local Ollama. The OpenAI path requires an explicit `P
 
 The test suite covers upload validation, document parsing, OCR, clause analysis, retrieval and citation checks, session isolation, comparison, answer streaming, deletion, hosted-service readiness, and browser interaction. Run `scripts/verify.ps1` on the documented Windows setup to repeat the local checks. Linux CI and the Docker image are not yet verified.
 
+The final backend run after the storage change passed 36 tests. The full verification script passed all of its configured gates; the pinned Python advisory scan was run separately and found no known vulnerabilities. The local synthetic latency probe recorded 6.0 ms median for an empty document list (30 runs) and 7.2 seconds for one uncached local-model answer. These are in-process local observations, not cloud performance claims.
+
 ## Review evidence
 
 - [Engineering and design review](quality-gate.md): requirements matrix, architecture choices, and visual fidelity ledger.
 - [Earlier evaluation snapshot](evaluation-2026-09-16.md): task specific evaluation and remaining limits.
 - [Deployment design](superpowers/specs/2026-09-15-protected-preview-deployment-design.md) and [implementation record](superpowers/plans/2026-09-15-protected-preview-deployment.md): preview architecture and prior rollout checks.
 - [Railway deployment runbook](railway-deployment.md): container configuration, rollout checks, and current resource blocker.
+- [Feature evidence](feature-evidence.md), [code quality](code-quality-report.md), [security review](security-review.md), [test report](test-report-2026-09-25.md), [latency report](latency-report-2026-09-25.md), and [accessibility review](accessibility-review.md): implementation and measured evidence.
+- [Submission readiness matrix](submission-readiness.md): passed local parameters and open cloud/independent-review gates.
 
 ## Live preview check
 
