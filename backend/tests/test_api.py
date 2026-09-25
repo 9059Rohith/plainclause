@@ -137,7 +137,8 @@ def test_local_request_cap_and_workspace_reset(tmp_path, monkeypatch):
     assert store.allow_request("session", "upload", 2)
 
 
-def test_mutation_rejects_cross_origin_and_missing_client_header(tmp_path):
+def test_mutation_rejects_cross_origin_and_missing_client_header(tmp_path, monkeypatch):
+    monkeypatch.setenv("PLAINCLAUSE_ALLOWED_ORIGINS", "https://plainclause-xi.vercel.app")
     client = TestClient(create_app(tmp_path / "csrf.db"))
     payload = {"file": ("terms.txt", b"This agreement requires payment every month.", "text/plain")}
     assert client.post("/api/documents", files=payload).status_code == 403
@@ -147,6 +148,9 @@ def test_mutation_rejects_cross_origin_and_missing_client_header(tmp_path):
     assert client.post("/api/documents", files=payload, headers=headers).status_code == 403
     headers = {"X-Requested-With": "Plainclause", "Host": "public.example.test", "Origin": "https://public.example.test"}
     assert client.post("/api/documents", files=payload, headers=headers).status_code == 200
+    headers = {"X-Requested-With": "Plainclause", "Host": "tunnel.example.test", "Origin": "https://plainclause-xi.vercel.app"}
+    assert client.post("/api/documents", files=payload, headers=headers).status_code == 200
+    assert "provider_key" not in client.get("/api/status").json()
 
 
 def test_optional_preview_password_protects_ui_and_api(tmp_path, monkeypatch):

@@ -16,7 +16,7 @@ Tests ran on Windows 11 with Python 3.12 and the repository's pinned Python envi
 | Pinned Python dependency advisory check | `.venv\Scripts\python.exe -m pip_audit -r backend/requirements.lock.txt --no-deps --disable-pip` | **No known vulnerabilities found**; auditor warned the lockfile has no hashes |
 | SQLite handle regression | `python -m pytest backend/tests/test_storage.py -q` | 1 passed; included in the 36-test backend total |
 
-The full `scripts/verify.ps1` run completed with exit code 0 for its configured gates. It does not invoke `pip-audit`; that scan was run separately. The initial backend stage of the script ran before the new SQLite regression test was added (35 passed); a separate full backend rerun after the fix passed all 36 tests.
+The full `scripts/verify.ps1` run completed with exit code 0 for its configured gates. It does not invoke `pip-audit`; that scan was run separately. The initial backend stage of the script ran before the new SQLite regression test was added (35 passed); a separate full backend rerun after the fix passed all 36 tests. After the Vercel origin and retrieval changes, another full backend run passed **36 tests in 106.67 s**. The longer duration reflects this machine's concurrent work and should not be treated as an API latency measurement.
 
 ## What the tests cover
 
@@ -31,7 +31,9 @@ The full `scripts/verify.ps1` run completed with exit code 0 for its configured 
 
 ## External smoke evidence
 
-The [temporary HTTPS preview](https://bee-nonintersecting-overwarily.ngrok-free.dev/) previously returned HTTP 200 for the app and `/api/status` with the local model available. A synthetic payment clause was uploaded, queried with one citation, and deleted; the preview database returned to zero documents. This demonstrates the tunnel at the time of the check, not future availability or cloud durability. See [submission report](submission-report-2026-09-25.md).
+The [Vercel production alias](https://plainclause-xi.vercel.app/) served the UI and returned HTTP 200 from `/api/ready` through its API rewrite. A synthetic two-section TXT file was uploaded (200), indexed (200, two of two sections), queried (200, `answered` with a citation to the `$275 each month` payment passage), and deleted (200, one document). This checks the public route through Vercel, ngrok, FastAPI, local Ollama, and SQLite at that time; it does not guarantee future availability. See the [Vercel deployment report](vercel-deployment.md).
+
+A separate headless Chromium flow performed upload, cited Q&A, and deletion through the visible Vercel UI. Its [captured answer](assets/plainclause-vercel-live.png) uses only synthetic wording. This confirms browser cookies and origin handling in addition to the HTTP smoke test.
 
 ## Gaps
 

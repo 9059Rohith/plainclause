@@ -24,6 +24,17 @@ The two TXT uploads took **35.2 ms** and **35.7 ms**. One uncached `POST /api/as
 
 The script prints JSON with the timestamp, platform, sample counts, median, nearest-rank p95, min/max, and answer status. It uses only synthetic clauses and an isolated temporary database. The result above was recorded at `2026-09-25T05:02:27Z`. The earlier first run was excluded because other suites were running and its temporary database cleanup failed; that exposed the SQLite handle bug fixed before this recorded run.
 
+## Retrieval optimization check
+
+The prior implementation fit a TF-IDF matrix over every section for every question and repeated that work in lexical fallback paths. The updated code first selects sections containing at least one meaningful question term, fits the matrix on those candidates, and reuses the resulting lexical ranking in hybrid fallbacks. A synthetic 400-section corpus, five calls per question, and the same Python process compared the previous committed implementation with the updated working tree. The relevant payment question returned section `317` in both versions.
+
+| Question | Previous median | Updated median | Result |
+| --- | ---: | ---: | --- |
+| “What is the monthly payment?” | 563.0 ms | 50.8 ms | No lexical match in either version |
+| “How much must the customer pay each month?” | 603.8 ms | 64.4 ms | Payment section `317` first in both versions |
+
+Run `python scripts/benchmark_retrieval.py` to measure the current implementation on the same synthetic corpus. A separate current-only run measured 35.2 ms and 50.1 ms medians, respectively. These are function timings on synthetic text, not end-to-end model or hosted latency. The first question still needs semantic matching or more natural lexical normalization to find the differently worded payment clause.
+
 ## Interpretation
 
 These numbers show that deterministic operations on tiny local documents complete quickly on this machine, while generation is the dominant cost. They do not establish a throughput target, behavior on 200-page documents, OCR latency, or performance on Railway hardware. A hosted load test and representative-document benchmark remain open release gates.

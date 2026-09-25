@@ -29,6 +29,8 @@ The final backend run after the storage change passed 36 tests. The full verific
 - [Earlier evaluation snapshot](evaluation-2026-09-16.md): task specific evaluation and remaining limits.
 - [Deployment design](superpowers/specs/2026-09-15-protected-preview-deployment-design.md) and [implementation record](superpowers/plans/2026-09-15-protected-preview-deployment.md): preview architecture and prior rollout checks.
 - [Railway deployment runbook](railway-deployment.md): container configuration, rollout checks, and current resource blocker.
+- [Vercel evaluation deployment](vercel-deployment.md): production alias, public browser/API smoke checks, and tunnel dependency.
+- [Contextualis reference review](reference-review-contextualis.md): transferable engineering practices and remaining differences.
 - [Feature evidence](feature-evidence.md), [code quality](code-quality-report.md), [security review](security-review.md), [test report](test-report-2026-09-25.md), [latency report](latency-report-2026-09-25.md), and [accessibility review](accessibility-review.md): implementation and measured evidence.
 - [Submission readiness matrix](submission-readiness.md): passed local parameters and open cloud/independent-review gates.
 
@@ -38,9 +40,13 @@ On 2026-09-25, the [HTTPS preview](https://bee-nonintersecting-overwarily.ngrok-
 
 After restarting the local preview server later that day, the public `/api/status` endpoint again reported `model_available: true` and `hosted_preview: true`. This confirms the preview link at that check, not future uptime.
 
+## Vercel public evaluation check
+
+The [Vercel production alias](https://plainclause-xi.vercel.app/) is live as an evaluation frontend and proxies API requests to the local ngrok-backed service. Vercel reported deployment `dpl_C8wzdrrQQ3fc6YAV1PoSFyHhDuD5` as `READY`. A public synthetic upload, two-section index, cited `$275 each month` answer, and deletion all returned HTTP 200 on 2026-09-25. See the [Vercel deployment report](vercel-deployment.md). The backend remains local, so this link is not durable all-cloud hosting.
+
 ## Release limitations
 
-The Railway deployment has not occurred. The original account's Free plan rejected project creation. Under the new account, the Railway project, service, `/data` volume, and domain were created, but both source uploads failed before build with `Your workspace has been restricted. Please attach a payment method or contact support to resolve this.` Direct GitHub connection also failed because that Railway account lacks access to this repository. The reserved domain `https://plainclause-production.up.railway.app` is **not live**. The Docker image has not been built because Docker Desktop is unavailable locally and Railway blocked the remote build. Account restriction resolution, a successful image build, and public smoke tests remain required before a durable live link can be claimed. See the [Railway runbook](railway-deployment.md).
+The Railway deployment has not occurred. The original account's Free plan rejected project creation. Under the new account, the Railway project, service, `/data` volume, and domain were created, but both source uploads failed before build with `Your workspace has been restricted. Please attach a payment method or contact support to resolve this.` Direct GitHub connection also failed because that Railway account lacks access to this repository. The reserved domain `https://plainclause-production.up.railway.app` is **not live**. The Docker image has not been built because Docker Desktop is unavailable locally and Railway blocked the remote build. Account restriction resolution, a successful image build, and public smoke tests remain required before a durable backend link can be claimed. See the [Railway runbook](railway-deployment.md).
 
 The HTTPS evaluation preview is an ngrok tunnel to the local Windows service. It is available only while this computer, Ollama, backend, and tunnel are running. The free ngrok domain may display a first visit warning. Upload traffic reaches the tunnel provider before local processing. The preview has no account authentication; each browser receives a session scoped workspace. Do not use it for confidential documents or as a production legal service.
 

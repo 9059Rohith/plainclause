@@ -164,7 +164,7 @@ export default function App() {
   const [indexError, setIndexError] = useState('')
   const [indexAttempt, setIndexAttempt] = useState(0)
   const fileInput = useRef<HTMLInputElement>(null)
-  useEffect(() => { api.list().then(setDocs).catch(() => setError('Could not connect to the local service. Start the backend and refresh.')); api.status().then(setStatus).catch(() => undefined) }, [])
+  useEffect(() => { api.list().then(setDocs).catch(() => setError('The document service is unavailable. Please refresh and try again.')); api.status().then(setStatus).catch(() => undefined) }, [])
   useEffect(() => { const timer = window.setTimeout(() => setSearch(searchInput), 180); return () => window.clearTimeout(timer) }, [searchInput])
   useEffect(() => { if (!selectedId) { setDoc(null); return } sessionStorage.setItem('plainclause-selected', selectedId); api.document(selectedId).then(setDoc).catch(() => { setDoc(null); setSelectedId(null) }) }, [selectedId])
   useEffect(() => {

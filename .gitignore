@@ -8,4 +8,5 @@ __pycache__/
 playwright-report/
 test-results/
 .runtime/
+contextualis-master.zip
 *.tsbuildinfo

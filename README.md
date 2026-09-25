@@ -2,7 +2,7 @@
 
 # Plainclause
 
-**Understand the fine print.** [Temporary live preview](https://bee-nonintersecting-overwarily.ngrok-free.dev/) · [Explore the code](https://github.com/9059Rohith/plainclause) · [Submission report](docs/submission-report-2026-09-25.md) · [Engineering review](docs/quality-gate.md) · [Railway deployment status](docs/railway-deployment.md)
+**Understand the fine print.** [Open the Vercel deployment](https://plainclause-xi.vercel.app/) · [Explore the code](https://github.com/9059Rohith/plainclause) · [Submission report](docs/submission-report-2026-09-25.md) · [Engineering review](docs/quality-gate.md) · [Deployment details](docs/vercel-deployment.md)
 
 Plainclause is an AI-powered legal document assistant that simplifies, compares, analyzes, and explains legal information while helping users identify key clauses, risks, and next steps. It extracts PDF, DOCX, and UTF-8 TXT files; preserves clause headings and PDF page references; highlights terms worth reviewing; answers questions using passages from the selected document; compares clause wording across documents; and prepares a checklist and questions for a lawyer. It provides **legal information, not legal advice**.
 
@@ -12,7 +12,7 @@ Plainclause is an AI-powered legal document assistant that simplifies, compares,
 
 ### Submission status
 
-The repository is ready for a **local technical review**: the documented Windows environment passes its automated backend, browser, type, lint, build, and dependency checks. It is **not yet 100% ready for a submission that requires a durable cloud deployment**. Railway created the project, volume, and domain, then blocked source upload at the account level. The temporary HTTPS preview is working at the last check but depends on this computer and tunnel. The [readiness matrix](docs/submission-readiness.md) separates passed parameters from the cloud and independent-review gates; no unverified parameter is marked passed.
+The [Vercel deployment](https://plainclause-xi.vercel.app/) serves the frontend and proxies `/api` to the local FastAPI/Ollama service over an ngrok tunnel. A public synthetic upload, index, cited answer, and deletion passed on 2026-09-25. The link depends on this computer and tunnel for document features; it is **not a durable cloud backend**. The repository is ready for a local technical review, while the [readiness matrix](docs/submission-readiness.md) records the remaining durable-hosting and independent-review gates. An external evaluation score or a 100% submission result cannot be inferred from repository checks.
 
 ## Features
 
@@ -37,7 +37,7 @@ Plainclause is designed for readers who need to understand practical obligations
 | Retrieval | scikit-learn, Ollama `all-minilm` | Persisted embeddings plus term matching |
 | Answers | Ollama `qwen2.5:1.5b` | Local drafts checked against cited passages |
 | Storage | SQLite | Session-scoped sections, vectors, history, and summaries |
-| Delivery | Docker, Railway configuration | Single-service hosted evaluation path |
+| Delivery | Vercel static frontend, ngrok API proxy; Docker/Railway configuration | Public evaluation link and separate durable-hosting path |
 
 ### Feature verification matrix
 
@@ -52,6 +52,7 @@ Plainclause is designed for readers who need to understand practical obligations
 | Comparison | Added/removed/modified clauses and amount/period changes across 2–5 documents | Comparison and browser tests | Passed locally |
 | Preparation and export | Questions, checklist, goals, Markdown, and browser PDF/print | Browser workflow tests Markdown; print control inspected in source | Passed locally for preparation and Markdown; PDF output unverified |
 | Session privacy and deletion | Cookie-scoped documents and cascading deletion | API isolation/deletion tests | Passed locally |
+| Vercel evaluation deployment | Public frontend, upload, index, cited answer, and deletion | [Public smoke test](docs/vercel-deployment.md) | Passed at recorded check; backend depends on local tunnel |
 | Durable Railway hosting | Public service with `/data` persistence and model readiness | Remote build and smoke test required | **Blocked by Railway account restriction** |
 
 The detailed [implementation-to-test map](docs/feature-evidence.md) records code locations and boundaries for each row.
@@ -63,6 +64,8 @@ These are browser captures from automated workflows. The desktop view uses a syn
 | Desktop document workspace | Mobile starting view |
 | --- | --- |
 | ![Plainclause desktop workspace with source sections and review rail](docs/assets/plainclause-desktop.png) | ![Plainclause mobile upload screen](docs/assets/plainclause-mobile.png) |
+
+[See the cited answer captured from the live Vercel URL](docs/assets/plainclause-vercel-live.png).
 
 ## Run locally
 
@@ -87,9 +90,15 @@ If port 8000 is occupied, use `--port 8765` in the backend command and open <htt
 
 Ollama is the default answer provider. To opt into cloud answers, set `PLAINCLAUSE_PROVIDER=openai` and `OPENAI_API_KEY` before starting the backend. In that mode, retrieved document excerpts and questions are sent to the configured OpenAI endpoint; the local-only privacy statements below apply only with the default Ollama provider. Embeddings remain local. The UI status reports provider availability, not the provider name.
 
-## Temporary online preview
+## Vercel evaluation deployment
 
-**Preview URL:** <https://bee-nonintersecting-overwarily.ngrok-free.dev/>. It returned HTTP 200 with the local model available at the last recorded check; availability can change at any time.
+**Live URL:** <https://plainclause-xi.vercel.app/>. The Vercel deployment was `READY`, and the public URL completed a synthetic upload, semantic index, source-cited Q&A, and deletion on 2026-09-25. The frontend is hosted by Vercel; `/api` is proxied to the local FastAPI/Ollama backend through ngrok. See the [deployment report](docs/vercel-deployment.md) for the deployment ID, smoke-test result, and operational limits.
+
+This URL is available for evaluation while this computer, the backend, Ollama, and the tunnel remain online. Vercel does not host the model or SQLite database. The backend stores extracted document data in an isolated local preview database. Do not upload confidential documents to this public evaluation service.
+
+### Direct tunnel preview
+
+**Direct preview URL:** <https://bee-nonintersecting-overwarily.ngrok-free.dev/>. It may show ngrok's first-visit warning. The Vercel URL above is the preferred evaluation entry point.
 
 An optional `PLAINCLAUSE_ACCESS_PASSWORD` environment variable enables a Basic-auth password gate across the UI and API (username `plainclause`). The evaluation preview leaves this variable unset so evaluators can open the link directly; anyone who obtains the URL can therefore access the service. Set `PLAINCLAUSE_HOSTED_PREVIEW=1` to show the in-app tunnel/privacy notice and use Secure session cookies. The current preview runs the same backend and local Ollama model on this computer through an ngrok HTTPS tunnel; its URL changes or expires, and it only works while the computer, backend, and tunnel stay running. This is a test preview, not durable cloud hosting. Uploaded document traffic passes through ngrok before reaching this computer. Preview data uses an isolated SQLite database under `.runtime/`; `.runtime/` is ignored by Git. Delete your workspace data after testing. Do not treat a free tunnel as a production deployment or upload documents you cannot share with its tunnel provider. Ngrok may show first-time visitors a one-time safety page before the application.
 

@@ -16,7 +16,7 @@ from starlette.concurrency import run_in_threadpool
 
 from .analysis import analyze_chunk, compare_chunks
 from .ingest import MAX_FILE_BYTES, Section, UploadError, parse_upload
-from .model import EMBED_MODEL, available, embed, generate, generate_stream, masked_key, provider_name
+from .model import EMBED_MODEL, available, embed, generate, generate_stream, provider_name
 from .rag import DISCLAIMER, grounded_answer, retrieve_hybrid
 from .storage import Store
 
@@ -51,6 +51,10 @@ def create_app(db_path: Path = DATA_PATH) -> FastAPI:
     access_password = os.getenv("PLAINCLAUSE_ACCESS_PASSWORD", "")
     hosted_preview = os.getenv("PLAINCLAUSE_HOSTED_PREVIEW") == "1"
     hosted_service = os.getenv("PLAINCLAUSE_HOSTED_SERVICE") == "1"
+    allowed_origins = {
+        origin.strip().rstrip("/") for origin in os.getenv("PLAINCLAUSE_ALLOWED_ORIGINS", "").split(",")
+        if re.fullmatch(r"https://[A-Za-z0-9.-]+(?::\d{1,5})?/?", origin.strip())
+    }
 
     @app.middleware("http")
     async def session_and_security(request: Request, call_next):
@@ -76,7 +80,7 @@ def create_app(db_path: Path = DATA_PATH) -> FastAPI:
                 return JSONResponse({"detail": "Cross-site requests are blocked."}, status_code=403)
             origin = request.headers.get("origin")
             host = request.headers.get("host", "")
-            if origin and origin not in {f"{request.url.scheme}://{host}", f"https://{host}"}:
+            if origin and origin not in {f"{request.url.scheme}://{host}", f"https://{host}", *allowed_origins}:
                 return JSONResponse({"detail": "Cross-origin requests are blocked."}, status_code=403)
             if request.url.path == "/api/documents" and not request.headers.get("content-length"):
                 return JSONResponse({"detail": "Upload requests require a known size."}, status_code=411)
@@ -113,7 +117,7 @@ def create_app(db_path: Path = DATA_PATH) -> FastAPI:
     @app.get("/api/status")
     async def status():
         return {"model_available": await available(), "model": provider_name(),
-                "provider_key": masked_key(), "disclaimer": DISCLAIMER,
+                "disclaimer": DISCLAIMER,
                 "hosted_preview": hosted_preview, "hosted_service": hosted_service}
 
     @app.get("/api/ready")

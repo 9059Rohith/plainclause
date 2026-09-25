@@ -101,8 +101,10 @@ async def _ollama_available() -> bool:
     if not safe_local_url(OLLAMA_URL):
         return False
     try:
-        client = _get_ollama_client()
-        response = await client.get(f"{OLLAMA_URL}/api/tags")
+        # Test clients may use a new event loop per request; a pooled client
+        # bound to an earlier loop can fail when the old transport closes.
+        async with httpx.AsyncClient(timeout=httpx.Timeout(5, connect=3), trust_env=False) as client:
+            response = await client.get(f"{OLLAMA_URL}/api/tags")
         response.raise_for_status()
         expected = OLLAMA_MODEL if ":" in OLLAMA_MODEL else f"{OLLAMA_MODEL}:latest"
         return any(m.get("name") == expected for m in response.json().get("models", []))
@@ -114,13 +116,6 @@ def provider_name() -> str:
     if PROVIDER == "openai" and _valid_openai_key():
         return f"OpenAI {OPENAI_MODEL}"
     return f"Ollama {OLLAMA_MODEL}" if PROVIDER == "ollama" else "No AI provider configured"
-
-
-def masked_key() -> str:
-    """Return a safely masked version of the API key for status display."""
-    if not OPENAI_API_KEY or len(OPENAI_API_KEY) < 8:
-        return ""
-    return f"{OPENAI_API_KEY[:3]}...{OPENAI_API_KEY[-4:]}"
 
 
 # ---------------------------------------------------------------------------

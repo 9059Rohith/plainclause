@@ -3,7 +3,7 @@ import type { Answer, Comparison, DocSummary, Document, HistoryItem, IndexProgre
 async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   const response = await fetch(`/api${path}`, {
     ...init,
-    headers: { ...(init.body instanceof FormData ? {} : { 'Content-Type': 'application/json' }), 'X-Requested-With': 'Plainclause', ...init.headers },
+    headers: { ...(init.body instanceof FormData ? {} : { 'Content-Type': 'application/json' }), 'X-Requested-With': 'Plainclause', 'ngrok-skip-browser-warning': 'true', ...init.headers },
     credentials: 'same-origin',
   })
   if (!response.ok) {
@@ -35,7 +35,7 @@ export const api = {
 export async function askStream(document_id: string, question: string, onStatus: (value: string) => void): Promise<Answer> {
   const response = await fetch('/api/ask/stream', {
     method: 'POST', credentials: 'same-origin',
-    headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'Plainclause' },
+    headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'Plainclause', 'ngrok-skip-browser-warning': 'true' },
     body: JSON.stringify({ document_id, question }),
   })
   if (!response.ok || !response.body) {
@@ -71,6 +71,7 @@ export function upload(file: File, onProgress: (message: string) => void): Promi
     xhr.open('POST', '/api/documents')
     xhr.withCredentials = true
     xhr.setRequestHeader('X-Requested-With', 'Plainclause')
+    xhr.setRequestHeader('ngrok-skip-browser-warning', 'true')
     xhr.upload.onprogress = event => {
       if (event.lengthComputable) onProgress(`Uploading ${Math.round(event.loaded / event.total * 100)}%`)
     }

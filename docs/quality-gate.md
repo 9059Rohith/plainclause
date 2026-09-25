@@ -17,9 +17,11 @@ The starting workspace had no application files or Git history. The attached pro
 | Semantic retrieval | Dense local embeddings | Absent | Medium | Local all-minilm vectors persist in SQLite; batch progress and lexical fallback; stored-vector and live-similarity checks |
 | Conversation | Saved Q&A and response streaming | Absent | Medium | Session/document-scoped history; streamed model progress with final verified answer only; API and browser checks |
 | Performance | Avoid redundant work and heavy initial rendering | Absent | Medium | Persisted vectors and exact verified-answer cache, lazy Compare/Prepare modules, off-screen section layout skipping, debounced document search; build and browser checks |
-| Hosted multiuser service | Accounts and public rate limiting | Absent | Outside local scope | Server documented and launched on `127.0.0.1`; do not expose publicly |
+| Hosted multiuser service | Accounts and public rate limiting | Absent | Outside local scope | Public evaluation preview has session isolation and request caps, but no account-based identity; use only synthetic/nonconfidential documents |
 
 ## Verification evidence (2026-09-14)
+
+The later [2026-09-25 test report](test-report-2026-09-25.md) supersedes the counts below: 36 backend tests, 4 local browser workflows, and a public Vercel browser smoke test passed. The [Vercel deployment report](vercel-deployment.md) records the live evaluation link and its local-backend dependency; the [latency report](latency-report-2026-09-25.md) records the retrieval optimization benchmark.
 
 - Clean Windows/Python 3.12 virtual environment installed from 56 pinned packages in `backend/requirements.lock.txt`; `pip check` found no broken requirements.
 - Backend: 32 tests passed, including a regression for numbered operative clauses, eight simultaneous isolated workspaces, a clearly large financial amount that prompts professional attention, and an optional preview password gate. The only warnings came from upstream Starlette/AnyIO test-client deprecations.

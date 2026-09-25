@@ -1,0 +1,14 @@
+.runtime/
+.venv/
+node_modules/
+contextualis-master.zip
+backend/data/
+backend/
+deployment/
+docs/
+scripts/
+tests/
+Dockerfile
+railway.json
+playwright-report/
+test-results/

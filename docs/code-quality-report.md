@@ -16,6 +16,8 @@ The repository was inspected across `src/`, `backend/app/`, tests, build configu
 
 The frontend separates API communication (`src/api.ts`), views (`App.tsx`, `Compare.tsx`, `Prepare.tsx`), types, and exports. The backend separates ingestion, deterministic analysis, retrieval and grounding, model access, SQLite, and HTTP routes. Comparison and preparation UI modules load on demand. The Dockerfile uses separate Node and Python build stages and excludes tests, runtime files, and documentation from the image context.
 
+The Vercel evaluation route now has an explicit HTTPS origin allowlist for browser mutations and does not publish API-key fragments through `/api/status`. Retrieval removes unrelated sections before TF-IDF fitting and reuses lexical results instead of recomputing them. The [latency report](latency-report-2026-09-25.md) records the measured 400-section before/after comparison.
+
 A repository text scan for common private-key, GitHub token, OpenAI-style key, and AWS access-key patterns found no matching credentials. This is a narrow pattern check, not a complete secret scan. The generated poster and screenshots contain synthetic or empty UI content.
 
 ## Resource lifecycle fix
