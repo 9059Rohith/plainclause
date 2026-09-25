@@ -15,7 +15,7 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
 }
 
 export const api = {
-  status: () => request<{ model_available: boolean; disclaimer: string; hosted_preview: boolean }>('/status'),
+  status: () => request<{ model_available: boolean; disclaimer: string; hosted_preview: boolean; hosted_service: boolean }>('/status'),
   list: () => request<DocSummary[]>('/documents'),
   document: (id: string) => request<Document>(`/documents/${id}`),
   indexStatus: (id: string) => request<IndexProgress>(`/documents/${id}/index`),

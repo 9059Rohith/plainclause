@@ -165,6 +165,32 @@ def test_optional_preview_password_protects_ui_and_api(tmp_path, monkeypatch):
     assert client.get(f"/api/documents/{upload.json()['id']}", headers=headers).status_code == 200
 
 
+def test_hosted_service_status_and_readiness(tmp_path, monkeypatch):
+    monkeypatch.setenv("PLAINCLAUSE_HOSTED_SERVICE", "1")
+
+    async def ready_model():
+        return True
+
+    monkeypatch.setattr("app.main.available", ready_model)
+    client = TestClient(create_app(tmp_path / "hosted.db"))
+    response = client.get("/api/status")
+    assert response.json()["hosted_service"] is True
+    assert response.json()["hosted_preview"] is False
+    assert "Secure" in response.headers["set-cookie"]
+    assert client.get("/api/ready").json() == {"ready": True}
+
+    async def unavailable_model():
+        return False
+
+    monkeypatch.setattr("app.main.available", unavailable_model)
+    assert client.get("/api/ready").status_code == 503
+
+    monkeypatch.setenv("PLAINCLAUSE_ACCESS_PASSWORD", "secret")
+    protected_client = TestClient(create_app(tmp_path / "protected-hosted.db"))
+    assert protected_client.get("/api/ready").status_code == 503
+    assert protected_client.get("/api/status").status_code == 401
+
+
 def test_large_financial_amount_prompts_professional_attention(tmp_path, monkeypatch):
     async def no_model():
         return False

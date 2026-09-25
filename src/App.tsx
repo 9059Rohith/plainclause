@@ -10,13 +10,13 @@ const DISCLAIMER = 'Legal information, not legal advice.'
 const Compare = lazy(() => import('./Compare'))
 const Prepare = lazy(() => import('./Prepare'))
 
-function EmptyWorkspace({ onBrowse, hostedPreview }: { onBrowse: () => void; hostedPreview: boolean }) {
+function EmptyWorkspace({ onBrowse, hosted }: { onBrowse: () => void; hosted: boolean }) {
   return <div className="empty-workspace">
     <div className="empty-icon"><FileText size={38} strokeWidth={1.5} /></div>
     <h1>Understand the fine print.</h1>
     <p>Upload an agreement, lease, policy, or other legal document. Plainclause helps you find the terms that matter and trace every answer back to the original.</p>
     <button className="primary-button" onClick={onBrowse}><Plus size={18} /> Add your first document</button>
-    <div className="empty-points"><span><ShieldCheck size={17} /> {hostedPreview ? 'Stored on this preview host' : 'Stored in your local workspace'}</span><span><BookOpen size={17} /> Sources stay visible</span></div>
+    <div className="empty-points"><span><ShieldCheck size={17} /> {hosted ? 'Stored on this service' : 'Stored in your local workspace'}</span><span><BookOpen size={17} /> Sources stay visible</span></div>
   </div>
 }
 
@@ -155,7 +155,7 @@ export default function App() {
   const [selectedId, setSelectedId] = useState<string | null>(sessionStorage.getItem('plainclause-selected'))
   const [doc, setDoc] = useState<Document | null>(null)
   const [tab, setTab] = useState<Tab>('overview')
-  const [status, setStatus] = useState<{ model_available: boolean; disclaimer: string; hosted_preview: boolean } | null>(null)
+  const [status, setStatus] = useState<{ model_available: boolean; disclaimer: string; hosted_preview: boolean; hosted_service: boolean } | null>(null)
   const [busy, setBusy] = useState('')
   const [error, setError] = useState('')
   const [searchInput, setSearchInput] = useState('')
@@ -189,6 +189,7 @@ export default function App() {
   }, [doc?.id, indexAttempt])
   useEffect(() => { const handler = (event: BeforeUnloadEvent) => { if (busy) event.preventDefault() }; window.addEventListener('beforeunload', handler); return () => window.removeEventListener('beforeunload', handler) }, [busy])
   const filteredDocs = docs.filter(d => d.name.toLowerCase().includes(search.toLowerCase()))
+  const isHosted = !!(status?.hosted_preview || status?.hosted_service)
   async function handleFile(file?: File) {
     if (!file) return
     setError('')
@@ -210,15 +211,16 @@ export default function App() {
     catch (err) { setError(err instanceof Error ? err.message : 'Could not delete workspace data.') }
   }
   return <div className="app-shell">
-    <header className="topbar"><div className="brand"><span className="brand-name">Plainclause</span><span className="brand-line">Your documents. Your understanding.</span></div><div className="top-actions"><span className="local-status"><LockKeyhole size={17} /><span>{status?.hosted_preview ? 'Hosted preview' : 'Local workspace'}<small>{status?.model_available ? 'Local AI ready' : 'AI model unavailable · sources still work'}</small></span></span><button className="top-delete" onClick={removeAll}><Trash2 size={18} /> Delete my data</button></div></header>
+    <header className="topbar"><div className="brand"><span className="brand-name">Plainclause</span><span className="brand-line">Your documents. Your understanding.</span></div><div className="top-actions"><span className="local-status"><LockKeyhole size={17} /><span>{status?.hosted_service ? 'Hosted service' : status?.hosted_preview ? 'Hosted preview' : 'Local workspace'}<small>{status?.model_available ? 'AI ready' : 'AI model unavailable · sources still work'}</small></span></span><button className="top-delete" onClick={removeAll}><Trash2 size={18} /> Delete my data</button></div></header>
     <aside className="sidebar"><div className="upload-area" onDragOver={e => e.preventDefault()} onDrop={e => { e.preventDefault(); void handleFile(e.dataTransfer.files[0]) }}><input ref={fileInput} type="file" accept=".pdf,.docx,.txt,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain" onChange={e => void handleFile(e.target.files?.[0])} aria-label="Upload a PDF, DOCX, or TXT document" /><button className="upload-button" disabled={!!busy} onClick={() => fileInput.current?.click()}><span className="upload-icon"><UploadCloud size={23} /></span><strong>{busy || 'Upload a document'}</strong><span>{busy ? 'Please keep this page open' : 'Drop a file here or click to browse'}</span></button><small>PDF, DOCX, TXT · 10 MB max · 200 PDF pages</small></div>
       {status?.hosted_preview && <p className="hosted-notice" role="note">Temporary online preview: uploads pass through a secure tunnel provider to this computer. Delete your data when done. The link works only while this computer and tunnel are running.</p>}
+      {status?.hosted_service && <p className="hosted-notice" role="note">Hosted evaluation service: documents and AI processing stay on the service provider's infrastructure. Delete your data when done. Do not upload confidential documents.</p>}
       <div className="sidebar-heading"><h2>Documents</h2><Search size={18} /></div>{docs.length > 4 && <input className="doc-search" value={searchInput} onChange={e => setSearchInput(e.target.value)} placeholder="Find a document" aria-label="Find a document" />}
       <nav className="doc-list" aria-label="Documents">{filteredDocs.map(d => <button key={d.id} className={selectedId === d.id ? 'selected' : ''} onClick={() => { setSelectedId(d.id); setTab('overview') }}><FileText size={20} /><span><strong>{d.name}</strong><small>{d.section_count} sections · {d.file_type.toUpperCase()}</small></span></button>)}{!docs.length && <p className="sidebar-empty">Your documents will appear here.</p>}</nav>
-      <div className="privacy-note"><LockKeyhole size={17} /><div><strong>{status?.hosted_preview ? "Temporary preview" : "Private by design"}</strong><p>{status?.hosted_preview ? "Uploads pass through a secure tunnel provider to this computer, where documents and AI processing remain. Delete your data when done; this preview link and host are temporary." : "Extracted text stays in this local service. No paid cloud account is needed."}</p></div></div>
+      <div className="privacy-note"><LockKeyhole size={17} /><div><strong>{status?.hosted_service ? "Hosted workspace" : status?.hosted_preview ? "Temporary preview" : "Private by design"}</strong><p>{status?.hosted_service ? "Extracted text and local AI processing remain on the hosted service and its attached storage. Delete your data when done." : status?.hosted_preview ? "Uploads pass through a secure tunnel provider to this computer, where documents and AI processing remain. Delete your data when done; this preview link and host are temporary." : "Extracted text stays in this local service. No paid cloud account is needed."}</p></div></div>
     </aside>
     <main className="main-panel">{error && <div className="global-error" role="alert">{error}<button aria-label="Dismiss error" onClick={() => setError('')}><X size={16} /></button></div>}
-      {!doc ? <EmptyWorkspace onBrowse={() => fileInput.current?.click()} hostedPreview={!!status?.hosted_preview} /> : <><div className="document-head"><div className="document-icon"><FileText size={27} /></div><div><h1>{doc.name}</h1><p>{doc.chunks.length} sections · {doc.file_type.toUpperCase()} · Added {new Date(doc.created_at + 'Z').toLocaleDateString()}</p></div><button className="icon-button remove-document" title="Delete this document" aria-label="Delete this document" onClick={removeDoc}><Trash2 size={18} /></button></div>
+      {!doc ? <EmptyWorkspace onBrowse={() => fileInput.current?.click()} hosted={isHosted} /> : <><div className="document-head"><div className="document-icon"><FileText size={27} /></div><div><h1>{doc.name}</h1><p>{doc.chunks.length} sections · {doc.file_type.toUpperCase()} · Added {new Date(doc.created_at + 'Z').toLocaleDateString()}</p></div><button className="icon-button remove-document" title="Delete this document" aria-label="Delete this document" onClick={removeDoc}><Trash2 size={18} /></button></div>
         {indexProgress && indexProgress.indexed < indexProgress.total && <p className="info-strip" role="status">Building local semantic index: {indexProgress.indexed} of {indexProgress.total} sections. Document reading and lexical search are available.</p>}
         {indexError && <p className="coverage-note" role="status">{indexError} Precise-word search remains available. <button className="text-button" onClick={() => setIndexAttempt(value => value + 1)}>Retry indexing</button></p>}
         <nav className="tabs" aria-label="Document tools">{([['overview', 'Overview'], ['ask', 'Ask'], ['compare', 'Compare'], ['prepare', 'Prepare']] as const).map(([key, label]) => <button key={key} className={tab === key ? 'active' : ''} aria-current={tab === key ? 'page' : undefined} onClick={() => setTab(key)}>{label}</button>)}</nav>

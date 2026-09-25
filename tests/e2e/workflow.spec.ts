@@ -101,3 +101,22 @@ test('hosted preview accurately describes provider-neutral tunnel handling', asy
   await expect(page.getByRole('note')).toContainText('secure tunnel provider')
   await expect(page.locator('body')).not.toContainText('localhost.run')
 })
+
+test('hosted service describes cloud processing and storage', async ({ page }) => {
+  await page.route('**/api/status', route => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify({
+      model_available: true,
+      model: 'Ollama local model',
+      disclaimer: 'Legal information, not legal advice.',
+      hosted_preview: false,
+      hosted_service: true,
+    }),
+  }))
+
+  await page.goto('/')
+  await expect(page.getByRole('note')).toContainText('Hosted evaluation service')
+  await expect(page.getByText('Hosted workspace')).toBeVisible()
+  await expect(page.locator('body')).not.toContainText('this computer and tunnel')
+})

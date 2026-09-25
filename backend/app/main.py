@@ -49,10 +49,12 @@ def create_app(db_path: Path = DATA_PATH) -> FastAPI:
     app = FastAPI(title="Plainclause local API", docs_url=None, redoc_url=None)
     store = Store(db_path)
     access_password = os.getenv("PLAINCLAUSE_ACCESS_PASSWORD", "")
+    hosted_preview = os.getenv("PLAINCLAUSE_HOSTED_PREVIEW") == "1"
+    hosted_service = os.getenv("PLAINCLAUSE_HOSTED_SERVICE") == "1"
 
     @app.middleware("http")
     async def session_and_security(request: Request, call_next):
-        if access_password:
+        if access_password and request.url.path != "/api/ready":
             authorization = request.headers.get("authorization", "")
             try:
                 scheme, encoded = authorization.split(" ", 1)
@@ -90,7 +92,7 @@ def create_app(db_path: Path = DATA_PATH) -> FastAPI:
         response = await call_next(request)
         if request.cookies.get("pc_session") != token:
             response.set_cookie("pc_session", token, httponly=True, samesite="strict",
-                                secure=request.url.scheme == "https" or os.getenv("PLAINCLAUSE_HOSTED_PREVIEW") == "1",
+                                secure=request.url.scheme == "https" or hosted_preview or hosted_service,
                                 max_age=60 * 60 * 24 * 30)
         response.headers["X-Content-Type-Options"] = "nosniff"
         response.headers["Referrer-Policy"] = "no-referrer"
@@ -98,7 +100,7 @@ def create_app(db_path: Path = DATA_PATH) -> FastAPI:
         response.headers["Content-Security-Policy"] = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; connect-src 'self'; img-src 'self' data:; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'"
         response.headers["X-Frame-Options"] = "DENY"
         response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=(), payment=()"
-        if request.url.scheme == "https" or os.getenv("PLAINCLAUSE_HOSTED_PREVIEW") == "1":
+        if request.url.scheme == "https" or hosted_preview or hosted_service:
             response.headers["Strict-Transport-Security"] = "max-age=63072000; includeSubDomains"
         return response
 
@@ -112,7 +114,13 @@ def create_app(db_path: Path = DATA_PATH) -> FastAPI:
     async def status():
         return {"model_available": await available(), "model": provider_name(),
                 "provider_key": masked_key(), "disclaimer": DISCLAIMER,
-                "hosted_preview": os.getenv("PLAINCLAUSE_HOSTED_PREVIEW") == "1"}
+                "hosted_preview": hosted_preview, "hosted_service": hosted_service}
+
+    @app.get("/api/ready")
+    async def ready():
+        if not await available():
+            raise HTTPException(503, "The local AI model is not ready.")
+        return {"ready": True}
 
     @app.get("/api/documents")
     async def documents(request: Request):
